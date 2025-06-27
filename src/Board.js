@@ -10,9 +10,9 @@ export default class Board extends React.Component {
     const clients = this.getClients();
     this.state = {
       clients: {
-        backlog: clients, // All tasks start in backlog
-        inProgress: [],
-        complete: [],
+        backlog: clients.filter(client => !client.status || client.status === 'backlog'),
+        inProgress: clients.filter(client => client.status && client.status === 'in-progress'),
+        complete: clients.filter(client => client.status && client.status === 'complete'),
       }
     }
     this.swimlanes = {
@@ -20,11 +20,9 @@ export default class Board extends React.Component {
       inProgress: React.createRef(),
       complete: React.createRef(),
     }
-    this.dragula = null;
   }
   getClients() {
     return [
-      //ensuring all cards are in backlog
       ['1','Stark, White and Abbott','Cloned Optimal Architecture','backlog' ],
       ['2','Wiza LLC','Exclusive Bandwidth-Monitored Implementation', 'backlog'],
       ['3','Nolan LLC','Vision-Oriented 4Thgeneration Graphicaluserinterface', 'backlog'],
@@ -52,82 +50,12 @@ export default class Board extends React.Component {
       status: companyDetails[3],
     }));
   }
-  componentDidMount() {
-    this.initDragula();
-  }
-
-  componentWillUnmount() {
-    if (this.dragula) {
-      this.dragula.destroy();
-    }
-  }
-
-  initDragula() {
-    const containers = [
-      this.swimlanes.backlog.current,
-      this.swimlanes.inProgress.current,
-      this.swimlanes.complete.current,
-    ];
-    this.dragula = Dragula(containers, {
-      revertOnSpill: true,
-    });
-    this.dragula.on('drop', (el, target, source, sibling) => {
-      // Cancel Dragula's DOM move, React will handle it
-      this.dragula.cancel(true);
-      const cardId = el.getAttribute('data-id');
-      const targetLane = this.getLaneNameByRef(target);
-      const sourceLane = this.getLaneNameByRef(source);
-      if (!cardId || !targetLane || !sourceLane) return;
-      // Remove from source
-      let card = null;
-      const newSource = this.state.clients[sourceLane].filter(c => {
-        if (c.id === cardId) {
-          card = { ...c, status: this.laneStatus(targetLane) };
-          return false;
-        }
-        return true;
-      });
-      // Insert into target at correct position
-      let newTarget = [...this.state.clients[targetLane]];
-      let idx = 0;
-      if (sibling) {
-        const siblingId = sibling.getAttribute('data-id');
-        idx = newTarget.findIndex(c => c.id === siblingId);
-        if (idx === -1) idx = newTarget.length;
-      } else {
-        idx = newTarget.length;
-      }
-      newTarget.splice(idx, 0, card);
-      // Build new state
-      this.setState({
-        clients: {
-          ...this.state.clients,
-          [sourceLane]: newSource,
-          [targetLane]: newTarget,
-        }
-      });
-    });
-  }
-
-  getLaneNameByRef(ref) {
-    if (ref === this.swimlanes.backlog.current) return 'backlog';
-    if (ref === this.swimlanes.inProgress.current) return 'inProgress';
-    if (ref === this.swimlanes.complete.current) return 'complete';
-    return null;
-  }
-
-  laneStatus(lane) {
-    if (lane === 'backlog') return 'backlog';
-    if (lane === 'inProgress') return 'in-progress';
-    if (lane === 'complete') return 'complete';
-    return 'backlog';
-  }
-
   renderSwimlane(name, clients, ref) {
     return (
       <Swimlane name={name} clients={clients} dragulaRef={ref}/>
     );
   }
+
 
   render() {
     return (
@@ -148,4 +76,14 @@ export default class Board extends React.Component {
       </div>
     );
   }
+  draculaDecorator = (componentBackingInstance) => {
+    if (componentBackingInstance) {
+      let options = {
+        moves: function (el, container, handle) {
+          return handle.className === 'handle';
+        }
+      };
+      Dragula([componentBackingInstance.swimlanes.backlog, componentBackingInstance.swimlanes.inProgress, componentBackingInstance.swimlanes.complete], options);
+    }
+  };
 }
