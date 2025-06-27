@@ -24,6 +24,7 @@ export default class Board extends React.Component {
   }
   getClients() {
     return [
+      //ensuring all cards are in backlog
       ['1','Stark, White and Abbott','Cloned Optimal Architecture','backlog' ],
       ['2','Wiza LLC','Exclusive Bandwidth-Monitored Implementation', 'backlog'],
       ['3','Nolan LLC','Vision-Oriented 4Thgeneration Graphicaluserinterface', 'backlog'],
